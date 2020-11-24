@@ -18,34 +18,25 @@ entropy_all = Entropy(class_1, class_2 + class_3);
 best_best_gain = 0
 best_feature = 0
 all_gain = [];
-best_best_threshold = 0;
-best_best_left = [];
-best_best_right = [];
+best_best_th
 % tree = struct('op', data.Properties.VariableNames(1), 'kids', {}, 'threshold', best_threshold)
-% tree = struct('op', '', 'kids', '', 'prediction', '', 'attribute', '', 'threshold', '')
+tree = struct('op', '', 'kids', '', 'prediction', '', 'attribute', '', 'threshold', '')
 for i = 1:13
-    [best_gain,  best_threshold, left_label, right_label, left_child, right_child] = Remainder(data, i, entropy_all, total_pn);
+    [best_gain,  best_threshold, left_label, right_label, left_child, right_child] = Remainder(data, i, entropy_all, total_pn)
     all_gain(end+1) = best_gain;
     if best_gain > best_best_gain
-        best_best_gain = best_gain;
-        best_feature = i;
-        best_best_threshold = best_threshold;
-        best_best_left = left_child;
-        best_best_right = right_child;
+        best_best_gain = best_gain
+        best_feature = i
     end
 end
 
-disp(all_gain)
+tree.op = data.Properties.VariableNames(best_feature)
 
-% tree.op = data.Properties.VariableNames(best_feature);
-% 
-% tree(1).kids = struct('op', '', 'kids', '', 'prediction', best_best_left, 'attribute', '', 'threshold', '');
-% tree(2).kids = struct('op', '', 'kids', '', 'prediction', best_best_right, 'attribute', '', 'threshold', '');
-% 
-% tree.attribute = best_feature;
-% tree.threshold = best_best_threshold;
+tree(1).kids = struct('op', data.Properties.VariableNames(1), 'kids', '', 'prediction', left_label, 'attribute', '1', 'threshold', '')
+tree(2).kids = struct('op', data.Properties.VariableNames(1), 'kids', '', 'prediction', right_label, 'attribute', '1', 'threshold', '')
 
-
+tree.attribute = best_feature
+tree.threshold = 
 
 function [a, b, c] = ClassCount(label)  
     a = 0;
