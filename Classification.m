@@ -1,6 +1,9 @@
+% =-=-=-=-=-=-=-=-=-=-=-=-=-= Data Loading =-=-=-=-=-=-=-=-=-=-=-=-=-=
 data = readtable('.\Data\Wine\refined_data.csv', 'PreserveVariableNames', true);   
 
-% data = T(randperm(size(T,1)), :);
+data = data(randperm(size(data,1)), :);
+tree = LearningTree(data(1:50,:), []);
+DrawDecisionTree(tree, 'Wine Classification')
 
 training_x = data(1:120, 1:13);
 training_y = data(1:120, 14);
@@ -8,43 +11,89 @@ training_y = data(1:120, 14);
 testing_x = data(120:end, 1:13);
 testing_y = table2array(data(120:end, 14));
 
-% --------------------------------------------------
+% =-=-=-=-=-=-=-=-=-=-=-=-=-= Functions =-=-=-=-=-=-=-=-=-=-=-=-=-=
+function [node] = LearningTree(data, tested_attributes)
+    [class_1, class_2, class_3] = ClassCount(table2array(data(:, end)));
 
-[class_1, class_2, class_3] = ClassCount(table2array(data(:, 14)))
+    total_pn = class_1 + class_2 + class_3;
+    total_p = class_1;
+    total_n = class_2 + class_3;
 
-total_pn = class_1 + class_2 + class_3;
-entropy_all = Entropy(class_1, class_2 + class_3);
+    node = struct('op', '', 'kids', [], 'class', [], 'attribute', [], 'threshold', []);
 
-best_best_gain = 0
-best_feature = 0
-all_gain = [];
-best_best_threshold = 0;
-best_best_left = [];
-best_best_right = [];
-% tree = struct('op', data.Properties.VariableNames(1), 'kids', {}, 'threshold', best_threshold)
-% tree = struct('op', '', 'kids', '', 'prediction', '', 'attribute', '', 'threshold', '')
-for i = 1:13
-    [best_gain,  best_threshold, left_label, right_label, left_child, right_child] = Remainder(data, i, entropy_all, total_pn);
-    all_gain(end+1) = best_gain;
-    if best_gain > best_best_gain
-        best_best_gain = best_gain;
-        best_feature = i;
-        best_best_threshold = best_threshold;
-        best_best_left = left_child;
-        best_best_right = right_child;
+    if length(unique(table2array(data(:,end)))) == 1
+        node.op = '';
+        node.kids = {};
+        if unique(table2array(data(:,end))) == 1
+            node.class = 1;
+        else
+            node.class = 0;
+        end
+        node.attribute = 0;
+        node.threshold = 0;
+        
+    else
+    
+        entropy_all = Entropy(class_1, class_2 + class_3);
+
+        best_best_gain = 0;
+        best_feature = 0;
+        all_gain = [];
+        best_best_threshold = 0;
+        best_best_left = [];
+        best_best_right = [];
+        % tree = struct('op', data.Properties.VariableNames(1), 'kids', {}, 'threshold', best_threshold)
+        for i = 1:13
+            if ismember(i, tested_attributes)
+                continue
+            end
+            [best_gain,  best_threshold, left_label, right_label, left_child, right_child] = Remainder(data, i, entropy_all, total_pn);
+            all_gain(end+1) = best_gain;
+            if best_gain > best_best_gain
+                best_best_gain = best_gain;
+                best_feature = i;
+                best_best_threshold = best_threshold;
+                best_best_left = left_child;
+                best_best_right = right_child;
+                best_left_label = left_label;
+                best_right_label = right_label;
+            end
+        end
+
+        tested_attributes = [tested_attributes, best_feature]
+
+        if tested_attributes(end) == 0
+            node.op = '';
+            node.attribute = '';
+            node.kids = {};
+            node.threshold = '';
+            if total_p > total_n
+                node.class = 1;
+            else
+                node.class = 0;
+            end
+        else
+            
+            node.op = char(data.Properties.VariableNames(best_feature));
+            node.attribute = best_feature;
+            node.threshold = best_best_threshold;
+            node.class = [];
+
+            if size(best_best_left) ~= 0
+                node.kids{1}.class = best_left_label
+                node.kids{1} = LearningTree(best_best_left, tested_attributes);
+
+            end
+            if size(best_best_right) ~= 0
+                node.kids{2}.class = best_right_label
+                node.kids{2} = LearningTree(best_best_right, tested_attributes);
+            end
+
+        end
+
     end
+
 end
-
-disp(all_gain)
-
-% tree.op = data.Properties.VariableNames(best_feature);
-% 
-% tree(1).kids = struct('op', '', 'kids', '', 'prediction', best_best_left, 'attribute', '', 'threshold', '');
-% tree(2).kids = struct('op', '', 'kids', '', 'prediction', best_best_right, 'attribute', '', 'threshold', '');
-% 
-% tree.attribute = best_feature;
-% tree.threshold = best_best_threshold;
-
 
 
 function [a, b, c] = ClassCount(label)  
@@ -114,8 +163,10 @@ function [best_gain,  best_threshold, left_label, right_label, left_child, right
         right_n = class_2 + class_3;
         entropy_right = Entropy(right_p, right_n );
         
-        avg_i_ent = ((left_p + left_n)/total_pn * entropy_left) + ((right_p + right_n)/total_pn * entropy_right );
+        avg_i_ent = (((left_p + left_n)/total_pn) * entropy_left) + (((right_p + right_n)/total_pn) * entropy_right );
         current_gain = entropy - avg_i_ent;
+        left_child = temp_left;
+        right_child = temp_right;
         
         if current_gain > best_gain 
             best_gain = current_gain;
@@ -129,6 +180,5 @@ function [best_gain,  best_threshold, left_label, right_label, left_child, right
         end
     end
 end
-
 
     
