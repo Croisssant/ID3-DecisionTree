@@ -4,8 +4,10 @@ data = readtable('.\Data\Wine\refined_data.csv', 'PreserveVariableNames', true);
 data = data(randperm(size(data,1)), :);
 tree = LearningTree(data(1:50,:), []);
 DrawDecisionTree(tree, 'Wine Classification')
+ 
+f1_score = Test_Accuracy(tree, data(51:101, :));
 
-accuracy = Test_Accuracy(tree, data(51:101, :));
+% [best_acc, best_tree] = Ten_Fold_CV(data)
 
 training_x = data(1:120, 1:13);
 training_y = data(1:120, 14);
@@ -184,47 +186,17 @@ end
 
 
 % =-=-=-=-=-=-=-=-=-=-=-=-=-= Testing Function =-=-=-=-=-=-=-=-=-=-=-=-=-=
-% prediction = [];
-% function accuracy = TreeAccuracy(tree, test_data)
-%     [m, n] = size(test_data);
-%     for i = 1:m
-%         if i = 1
-%             temp = tree
-%         end
-%         while ~isempty(temp.op)
-%             if test_data(i, temp.attribute) <= temp.threshold
-%                 go tree{1, 1}
-%                 TreeAccuracy(temp.kids{1, 1})
-%             else
-%                 go tree{1, 2}
-%                 TreeAccuracy(temp.kids{1, 2})
-%             end
-%         end
-%         
-%         if isempty(tree.op)
-%             prediction(end+1) = tree.threshold;
-%         end
-%         
-%         if isempty(test_data)
-%             for i = 1:m
-%                 if prediction(i) == test_data(i, end)
-%                     score = score + 1;
-%                 end
-%             end
-%             
-%             fprintf('The total score is %d, out of %d', score, m);
-%             accuracy = (score/m);
-%             fprintf('Therefore, accuracy is %.2f', accuracy);
-%         end
-%     end
-% end
 
-function accuracy = Test_Accuracy(tree, dataset)
+function f1_score = Test_Accuracy(tree, dataset)
     [m, n] = size(dataset);
     all_predicted = [];
-    score = 0;
     
+    true_positive = 0;
+    false_positive = 0;
     
+    true_negative = 0;
+    false_negative = 0;
+     
     for i = 1:m
         predicted_val = TreePrediction(tree, dataset(i,:));
         all_predicted(end+1) = predicted_val;
@@ -237,15 +209,29 @@ function accuracy = Test_Accuracy(tree, dataset)
             actual_value = 1;
         end
         
-        if all_predicted(z) == actual_value
-            score = score + 1;
+        if (all_predicted(z) == actual_value & actual_value == 1)
+            true_positive = true_positive + 1;
+        
+        elseif (all_predicted(z) ~= actual_value & actual_value == 1)
+            false_negative = false_negative + 1;
+            
+        elseif (all_predicted(z) == actual_value & actual_value == 0)
+            true_negative = true_negative + 1;
+        
+        elseif (all_predicted(z) ~= actual_value & actual_value == 0)
+            false_positive = false_positive + 1;
         end
+            
     end
-
-    fprintf('The total score is %d, out of %d\n', score, m);
-    accuracy = (score/m) * 100;
-    fprintf('Therefore, accuracy is %.2f percent.\n', accuracy);
-    disp(all_predicted)
+    
+    precision = true_positive / (true_positive + false_positive);
+    recall = true_positive / (true_positive + false_negative);
+    
+    f1_score = 2 * ((precision * recall) / (precision + recall));
+    
+    fprintf('Precision: %.2f\n', precision);
+    fprintf('Recall: %.2f\n', recall);
+    fprintf('F1 - Score: %.2f\n', f1_score);
             
 end
 
@@ -262,7 +248,8 @@ function pred = TreePrediction(tree, dataset)
 end
 
 % =-=-=-=-=-=-=-=-=-=-=-=-=-= 10-Fold Cross Validation Function =-=-=-=-=-=-=-=-=-=-=-=-=-=
-function [acc, tree] = Ten_Fold_CV(dataset)
+function [best_acc, best_tree] = Ten_Fold_CV(dataset)
+    best_acc = 0;
     for i = 1:10
         data = dataset
         l = 0 + (i * 17)
@@ -276,7 +263,12 @@ function [acc, tree] = Ten_Fold_CV(dataset)
             training_fold(l:j, :) = [];
         end
         
-        tree = LearningTree(training_fold);
-        acc = TreeAccuracy(tree, testing_fold);
+        tree = LearningTree(training_fold, []);
+        acc = Test_Accuracy(tree, testing_fold);
+        
+        if acc > best_acc
+            best_acc = acc;
+            best_tree = tree;
+        end
     end
 end
