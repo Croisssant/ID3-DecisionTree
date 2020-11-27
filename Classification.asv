@@ -224,39 +224,34 @@ function accuracy = Test_Accuracy(tree, dataset)
     all_predicted = [];
     score = 0;
     
-    
-    for i = 1:m
-        predicted_val = TreePrediction(tree, dataset(i,:));
-        all_predicted(end+1) = predicted_val;
+    while ~isempty(dataset)
+        for i = 1:m
+            predicted_val = TreePrediction(tree, dataset(i,:));
+            all_predicted(end+1) = predicted_val
+        end
     end
     
     for z = 1:m
-        if (dataset{z, end} == 3 | dataset{z, end} == 2)
-            actual_value = 0;
-        else
-            actual_value = 1;
-        end
-        
-        if all_predicted(z) == actual_value
+        if all_predicted(z) == dataset(z, end)
             score = score + 1;
         end
     end
 
-    fprintf('The total score is %d, out of %d\n', score, m);
-    accuracy = (score/m) * 100;
-    fprintf('Therefore, accuracy is %.2f percent.\n', accuracy);
-    disp(all_predicted)
+    fprintf('The total score is %d, out of %d', score, m);
+    accuracy = (score/m);
+    fprintf('Therefore, accuracy is %.2f', accuracy);
+
             
 end
 
 function pred = TreePrediction(tree, dataset)
     if isempty(tree.op)
-        pred = tree.class;
+        pred = tree.class
     else
         if dataset{:, tree.attribute} <= tree.threshold
-            pred = TreePrediction(tree.kids{1, 1}, dataset);
+            pred = TreePrediction(tree.kids{1, 1})
         else
-            pred = TreePrediction(tree.kids{1, 2}, dataset);
+            TreePrediction(tree.kids{1, 2})
         end
     end
 end
