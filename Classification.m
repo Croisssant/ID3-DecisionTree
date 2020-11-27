@@ -2,7 +2,7 @@
 data = readtable('.\Data\Wine\refined_data.csv', 'PreserveVariableNames', true);   
 
 data = data(randperm(size(data,1)), :);
-tree = LearningTree(data(1:50,:), []);
+tree = LearningTreeClassification(data(1:50,:), []);
 DrawDecisionTree(tree, 'Wine Classification')
  
 f1_score = Test_Accuracy(tree, data(51:101, :));
@@ -17,7 +17,7 @@ testing_y = table2array(data(120:end, 14));
 
 % =-=-=-=-=-=-=-=-=-=-=-=-=-= Training Functions =-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-function [node] = LearningTree(data, tested_attributes)
+function [node] = LearningTreeClassification(data, tested_attributes)
     [class_1, class_2, class_3] = ClassCount(table2array(data(:, end)));
 
     total_pn = class_1 + class_2 + class_3;
@@ -87,12 +87,12 @@ function [node] = LearningTree(data, tested_attributes)
 
             if size(best_best_left) ~= 0
                 node.kids{1}.class = best_left_label
-                node.kids{1} = LearningTree(best_best_left, tested_attributes);
+                node.kids{1} = LearningTreeClassification(best_best_left, tested_attributes);
 
             end
             if size(best_best_right) ~= 0
                 node.kids{2}.class = best_right_label
-                node.kids{2} = LearningTree(best_best_right, tested_attributes);
+                node.kids{2} = LearningTreeClassification(best_best_right, tested_attributes);
             end
 
         end
@@ -263,7 +263,7 @@ function [best_acc, best_tree] = Ten_Fold_CV(dataset)
             training_fold(l:j, :) = [];
         end
         
-        tree = LearningTree(training_fold, []);
+        tree = LearningTreeClassification(training_fold, []);
         acc = Test_Accuracy(tree, testing_fold);
         
         if acc > best_acc
