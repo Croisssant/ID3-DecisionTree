@@ -1,13 +1,18 @@
 % =-=-=-=-=-=-=-=-=-=-=-=-=-= Data Loading =-=-=-=-=-=-=-=-=-=-=-=-=-=
 data = readtable('.\Data\Wine\refined_data.csv', 'PreserveVariableNames', true);   
 
-data = data(randperm(size(data,1)), :);
-tree = LearningTreeClassification(data(1:50,:), []);
-DrawDecisionTree(tree, 'Wine Classification')
- 
-f1_score = Test_Accuracy(tree, data(51:101, :));
+global number_nodes;
+number_nodes = 0;
 
-% [best_acc, best_tree] = Ten_Fold_CV(data)
+data = data(randperm(size(data,1)), :);
+% tree = LearningTreeClassification(data(1:100,:), []);
+% fprintf('The number of nodes in the tree is %d\n', number_nodes);
+% DrawDecisionTree(tree, 'Wine Classification')
+% 
+% f1_score = Test_Accuracy(tree, data(101:end, :));
+
+[best_acc, best_tree] = Ten_Fold_CV(data);
+
 
 training_x = data(1:120, 1:13);
 training_y = data(1:120, 14);
@@ -18,6 +23,7 @@ testing_y = table2array(data(120:end, 14));
 % =-=-=-=-=-=-=-=-=-=-=-=-=-= Training Functions =-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 function [node] = LearningTreeClassification(data, tested_attributes)
+    global number_nodes;
     [class_1, class_2, class_3] = ClassCount(table2array(data(:, end)));
 
     total_pn = class_1 + class_2 + class_3;
@@ -37,7 +43,7 @@ function [node] = LearningTreeClassification(data, tested_attributes)
         end
         node.attribute = 0;
         node.threshold = 0;
-        
+              
     else
     
         entropy_all = Entropy(class_1, class_2 + class_3);
@@ -84,14 +90,16 @@ function [node] = LearningTreeClassification(data, tested_attributes)
             node.attribute = best_feature;
             node.threshold = best_best_threshold;
             node.class = [];
-
+            number_nodes = number_nodes + 1;
+                
             if size(best_best_left) ~= 0
-                node.kids{1}.class = best_left_label
+                node.kids{1}.class = best_left_label;
                 node.kids{1} = LearningTreeClassification(best_best_left, tested_attributes);
 
             end
+            
             if size(best_best_right) ~= 0
-                node.kids{2}.class = best_right_label
+                node.kids{2}.class = best_right_label;
                 node.kids{2} = LearningTreeClassification(best_best_right, tested_attributes);
             end
 
@@ -130,24 +138,26 @@ function entropy_val = Entropy(p, n)
 end      
 
 function [best_gain,  best_threshold, left_label, right_label, left_child, right_child] = Remainder(dataset, feature_no, entropy, total_pn)
+    
     best_gain = 0;
     best_threshold = 0;
     left_label = [];
     right_label = [];
-   
+    unique_vals = sort(unique(dataset{:, feature_no}));
+    threshold = (unique_vals(1:end-1) + unique_vals(2:end))/2;
+    left_child = table();
+    right_child = table();
    
     [m, n] = size(dataset);
     
-    for i = 1:m
-        threshold = dataset{i, feature_no};
-        
+    for i = 1:length(threshold)
         left = [];
         right = [];
         temp_left = table();
         temp_right = table();
     
         for j = 1:m
-            if dataset{j, feature_no} <= threshold
+            if dataset{j, feature_no} <= threshold(i)
                 left(end+1) = dataset{j, end};
                 temp_left = [temp_left; dataset(j,:)];
             else
@@ -168,16 +178,12 @@ function [best_gain,  best_threshold, left_label, right_label, left_child, right
         
         avg_i_ent = (((left_p + left_n)/total_pn) * entropy_left) + (((right_p + right_n)/total_pn) * entropy_right );
         current_gain = entropy - avg_i_ent;
-        left_child = temp_left;
-        right_child = temp_right;
         
         if current_gain > best_gain 
             best_gain = current_gain;
-            best_threshold = threshold;
+            best_threshold = threshold(i);
          	left_label = left;
             right_label = right;
-            left_child = table();
-            right_child = table();
             left_child = temp_left;
             right_child = temp_right;
         end
@@ -236,8 +242,10 @@ function f1_score = Test_Accuracy(tree, dataset)
 end
 
 function pred = TreePrediction(tree, dataset)
-    if isempty(tree.op)
+    if ~isempty(tree.class)
         pred = tree.class;
+    elseif size(tree.kids, 2) == 1
+        pred = TreePrediction(tree.kids{1, 1}, dataset);
     else
         if dataset{:, tree.attribute} <= tree.threshold
             pred = TreePrediction(tree.kids{1, 1}, dataset);
@@ -249,26 +257,66 @@ end
 
 % =-=-=-=-=-=-=-=-=-=-=-=-=-= 10-Fold Cross Validation Function =-=-=-=-=-=-=-=-=-=-=-=-=-=
 function [best_acc, best_tree] = Ten_Fold_CV(dataset)
+    global number_nodes;
+    [m, n] = size(dataset);
+    fold_size = ceil(m/10);
     best_acc = 0;
-    for i = 1:10
-        data = dataset
-        l = 0 + (i * 17)
-        j = 17 + (i * 17)
-        testing_fold = data(l:j, :);
-        training_fold = data;
-        training_fold(l:j, :) = [];
+    num_node = 0;
+    
+    for i = 0:9
+        fprintf('\n========== This is Fold %d ==========\n', i);
+        data = dataset;
+        
+        if i == 0
+            l = 1
+            j = fold_size
+        
+        else
+            
+            l = i * fold_size;
+            l = l + 1
+            j = i * fold_size + fold_size
+        end
+        
+        
+
         if i == 9
             training_fold = data;
             testing_fold = data(l:end, :)
+            training_fold(l:end, :) = [];
+        else
+            testing_fold = data(l:j, :);
+            training_fold = data;
             training_fold(l:j, :) = [];
         end
         
+        number_nodes = 0;
         tree = LearningTreeClassification(training_fold, []);
+        DrawDecisionTree(tree, 'Wine Classification');
         acc = Test_Accuracy(tree, testing_fold);
+        fprintf('Current Tree Accuracy: %.2f', acc);
         
-        if acc > best_acc
+        if i == 0
             best_acc = acc;
+            num_node = number_nodes;
+        end
+        
+        if acc > best_acc 
+            best_acc = acc;
+            num_node = number_nodes;
+            best_tree = tree;
+            
+        elseif acc == best_acc & number_nodes < num_node
+            best_acc = acc;
+            num_node = number_nodes;
             best_tree = tree;
         end
     end
+    
+    fprintf('\n============================\n');
+    fprintf('The best tree has F1-Score of %d and %d number of nodes.\n', best_acc, num_node);
+    fprintf('============================\n');
+    DrawDecisionTree(best_tree, 'Best Tree')
 end
+
+        
