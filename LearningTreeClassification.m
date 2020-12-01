@@ -48,7 +48,7 @@ function [node] = LearningTreeClassification(data, tested_attributes)
             end
         end
 
-        tested_attributes = [tested_attributes, best_feature]
+        tested_attributes = [tested_attributes, best_feature];
 
         if tested_attributes(end) == 0
             node.op = '';

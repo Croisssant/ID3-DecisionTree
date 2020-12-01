@@ -10,14 +10,14 @@ function [best_acc, best_tree] = Ten_Fold_CV(dataset)
         data = dataset;
         
         if i == 0
-            l = 1
-            j = fold_size
+            l = 1;
+            j = fold_size;
         
         else
             
             l = i * fold_size;
-            l = l + 1
-            j = i * fold_size + fold_size
+            l = l + 1;
+            j = i * fold_size + fold_size;
         end
         
         
@@ -36,7 +36,6 @@ function [best_acc, best_tree] = Ten_Fold_CV(dataset)
         tree = LearningTreeClassification(training_fold, []);
         DrawDecisionTree(tree, 'Wine Classification');
         acc = F1_Score_Test(tree, testing_fold);
-        fprintf('Current Tree Accuracy: %.2f', acc);
         
         if i == 0
             best_acc = acc;
