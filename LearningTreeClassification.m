@@ -30,7 +30,7 @@ function [node] = LearningTreeClassification(data, tested_attributes)
         best_best_threshold = 0;
         best_best_left = [];
         best_best_right = [];
-        % tree = struct('op', data.Properties.VariableNames(1), 'kids', {}, 'threshold', best_threshold)
+      
         for i = 1:13
             if ismember(i, tested_attributes)
                 continue

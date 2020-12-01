@@ -1,41 +1,6 @@
-data = readtable('.\Data\Airfoil_self_noise\airfoil_self_noise.dat');
-training = data(1:1000, :);
-testing = data(1000:end, :);
-[m,n] = size(training);
-[o,p] = size(testing);
-%---------------------------------------------------------------------------
-tree = struct('op', 0, 'kids', [], 'class', [], 'threshold',[]);
-[tree,count] = Decision_Tree(training,1);
-DrawDecisionTree(tree,"regression");
-
-test_label = testing{:,6};
-test_label = test_label.';
-predict_label = [];
-
-for i = 1:o
-    predict_label(i) = Test(tree, testing);
-end
-
-% RMSE = test_label - predict_label;
-% RMSE = RMSE.^2;
-MSE = mean((test_label - predict_label).^2)
-RMSE = sqrt(MSE)
-count
-
-function predict = Test(tree, test)
-    if isempty(tree.op)
-        predict = tree.class;
-    else
-        if test{:,tree.op}== tree.threshold
-            predict = Test(tree.kids{1,1},test);
-        else
-            predict = Test(tree.kids{1,2},test);
-        end
-    end
-end
-
-function [node,count] = Decision_Tree(training,count)
-    count = count +1;
+function [node] = LearningTreeRegression(training)
+    global number_nodes;
+    number_nodes = number_nodes + 1;
     [m,n] = size(training);
     SD = std(training{:,n});
     
@@ -57,7 +22,7 @@ function [node,count] = Decision_Tree(training,count)
     feature = 0;
 
     for x = 1:n-1
-        [threshold, SDR] = Feature_entrophy(SD,training,x);
+        [threshold, SDR] = Feature_Entropy(SD,training,x);
         if SDR > best_SDR
            best_SDR = SDR;
            best_threshold = threshold;
@@ -70,15 +35,14 @@ function [node,count] = Decision_Tree(training,count)
     node.threshold = best_threshold;
     [left_t,right_t] = slice_train(training,feature,best_threshold);
     
-    [node.kids{1,1},count_l] = Decision_Tree(left_t,count);
-    [node.kids{1,2},count_r] = Decision_Tree(right_t,count);
+    node.kids{1,1} = LearningTreeRegression(left_t);
+    node.kids{1,2} = LearningTreeRegression(right_t);
     
-    count = count + count_l + count_r;
 end
 
-% Feature_entrophy function calculate the features' gain(SDR)and its
+% Feature_Entropy function calculate the features' gain(SDR)and its
 % threshold
-function [threshold,SDR] = Feature_entrophy(SD,training,feature)
+function [threshold,SDR] = Feature_Entropy(SD,training,feature)
     [m,n] = size(training);
     C = unique(training{:,feature}); %classify all data into unique values
     [a,b] = size(C);
