@@ -26,7 +26,7 @@ function predict = Test(tree, test)
     if isempty(tree.op)
         predict = tree.class;
     else
-        if test{:,tree.op}== tree.threshold
+        if test{:,tree.op}<= tree.threshold
             predict = Test(tree.kids{1,1},test);
         else
             predict = Test(tree.kids{1,2},test);
@@ -40,7 +40,7 @@ function [node,count] = Decision_Tree(training,count)
     SD = std(training{:,n});
     
     % the stopping condition 
-    if m <= 50
+    if m <= 
        label = mean(training{:,end});
        node.class = label;
        node.kids = {}; 
