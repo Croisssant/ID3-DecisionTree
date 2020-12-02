@@ -85,7 +85,7 @@ function Decision_Learning_Tree(train_data, test_data, data, flag)
         elseif input_ans == 1
             global number_nodes;
             number_nodes = 0;
-            [best_acc, best_tree] = Ten_Fold_CV(data);
+            [best_acc, best_tree] = Ten_Fold_CV(data, flag);
         
         else
             disp('Please provide a valid input')
